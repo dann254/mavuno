@@ -1,0 +1,13 @@
+@import 'node_modules/bootstrap/scss/bootstrap';
+@import 'node_modules/bootstrap-vue/src/index.scss';
+
+@import './_variables';
+
+
+html, body {
+    background-color: $_light;
+    margin: 0 !important;
+    color: $_black;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
