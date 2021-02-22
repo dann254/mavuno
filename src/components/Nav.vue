@@ -1,15 +1,16 @@
 <template>
-  <div id="nav" class="container" v-if="auth === 'true'">
+  <div id="nav" class="container" v-if="authenticated">
     <div class="n-brand h1">mavuno</div>
     <div class="n-links">
       <router-link :to="{ name: 'Farmers' }">Home</router-link>
       <router-link :to="{ name: 'Statistics' }">Statistics</router-link>
+      <a href="#" @click.prevent="logout">logout</a>
     </div>
   </div>
 </template>
 
 <script>
-// @ is an alias to /src
+import { mapGetters , mapActions} from 'vuex'
 
 
 export default {
@@ -21,6 +22,24 @@ export default {
       auth: localStorage.getItem('loggedIn')
     }
   },
+  computed: {
+    ...mapGetters({
+      authenticated: 'auth/authenticated'
+    })
+  },
+  methods: {
+    ...mapActions({
+      signOut: 'auth/signOut'
+    }),
+
+    logout() {
+      this.signOut().then(() => {
+        this.$router.replace({
+          name: 'Home'
+        })
+      })
+    }
+  }
 }
 </script>
 

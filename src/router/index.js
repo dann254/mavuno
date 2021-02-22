@@ -5,6 +5,7 @@ import Farmers from '../views/Farmers.vue'
 import Farms from '../views/Farms.vue'
 import Harvests from '../views/Harvests.vue'
 import Statistics from '../views/Statistics.vue'
+import store from '@/store'
 
 Vue.use(VueRouter)
 
@@ -12,37 +13,70 @@ const routes = [
   {
     path: '/',
     name: 'Home',
-    component: Home
+    component: Home,
+    beforeEnter: (to, from, next) => {
+      if (store.getters['auth/authenticated']) {
+        return next({
+          name: 'Farmers'
+        })
+      }
+      next()
+    }
   },
   {
     path: '/farmers',
     name: 'Farmers',
-    component: Farmers
+    component: Farmers,
+    beforeEnter: (to, from, next) => {
+      if (!store.getters['auth/authenticated']) {
+        return next({
+          name: 'Home'
+        })
+      }
+      next()
+    }
   },
   {
     path: '/farmers/:farmerId/farms',
     name: 'Farms',
-    component: Farms
+    component: Farms,
+    props: true,
+    beforeEnter: (to, from, next) => {
+      if (!store.getters['auth/authenticated']) {
+        return next({
+          name: 'Home'
+        })
+      }
+      next()
+    }
   },
   {
     path: '/farmers/:farmerId/farms/:farmId/harvests',
     name: 'Harvests',
-    component: Harvests
+    component: Harvests,
+    props: true,
+    beforeEnter: (to, from, next) => {
+      if (!store.getters['auth/authenticated']) {
+        return next({
+          name: 'Home'
+        })
+      }
+      next()
+    }
   },
   {
     path: '/statistics',
     name: 'Statistics',
-    component: Statistics
+    component: Statistics,
+    beforeEnter: (to, from, next) => {
+      if (!store.getters['auth/authenticated']) {
+        return next({
+          name: 'Home'
+        })
+      }
+      next()
+    }
   },
-  
-  // {
-  //   path: '/about',
-  //   name: 'About',
-  //   // route level code-splitting
-  //   // this generates a separate chunk (about.[hash].js) for this route
-  //   // which is lazy-loaded when the route is visited.
-  //   component: () => import(/* webpackChunkName: "about" */ '../views/About.vue')
-  // }
 ]
 
 const router = new VueRouter({

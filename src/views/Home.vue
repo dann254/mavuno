@@ -7,16 +7,16 @@
           <div class="h3">Login</div>
           <div class="form-group">
             <label for="exampleInputEmail1">Email address</label>
-            <input type="email" class="form-control is-invalid" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Enter email">
+            <input type="email" class="form-control is-invalid" id="exampleInputEmail1" v-model="form.email" aria-describedby="emailHelp" placeholder="Enter email">
             <div class="invalid-feedback">
               Please choose a username.
             </div>
           </div>
           <div class="form-group">
             <label for="exampleInputPassword1">Password</label>
-            <input type="password" class="form-control" id="exampleInputPassword1" placeholder="Password">
+            <input type="password" class="form-control" id="exampleInputPassword1"  v-model="form.password" placeholder="Password">
           </div>
-          <button class="btn btn-primary" @click="redirect">Login</button>
+          <button class="btn btn-primary" @click="submit">Login</button>
         </div>
       </div>
       <div class="col panel image-panel"></div>
@@ -25,14 +25,37 @@
 </template>
 
 <script>
-// @ is an alias to /src
+import { mapActions } from 'vuex'
 
 
 export default {
   name: 'Home',
   components: {
   },
+  data () {
+    return {
+      form: {
+        email: 'admin@example.com',
+        password: 'password1'
+      },
+      error : false
+    }
+  },
   methods: {
+    ...mapActions({
+      signIn: 'auth/signIn'
+    }),
+    submit () {
+      this.signIn(this.form)
+        .then(success => {
+          this.$router.push({name: 'Farmers'})
+          console.log(success)
+        })
+        .catch(error => {
+          this.error = true;
+          console.log(error)
+        })
+    },
     redirect() {
       localStorage.setItem('loggedIn', true)
       this.$router.push({name: 'Farmers'})
