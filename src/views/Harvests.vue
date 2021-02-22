@@ -1,8 +1,14 @@
 <template>
   <div class="harvest container">
-    <h2 class="text-primary"> Harvests </h2>
+    <h3 class="text-primary"><span class="text-muted"> <router-link class="text-muted" :to="{ name: 'Farmers'}">Farmers > </router-link></span><span  class="text-muted"><router-link class="text-muted" :to="{ name: 'Farms', params: { farmerId: farmerId} }"> Farms > </router-link></span><span>  Harvests </span> </h3>
+    <div v-if="farm">
+      <h4>{{farm.farmer.name}}</h4>
+
+      <h6>id number: {{farm.farmer.id_number}} <br> location: {{farm.farmer.location.address}}  <br> Farm Deed: {{farm.deed_number}}</h6>
+    </div>
     <div class="card table-card">
       <div class="card-body">
+         <div class="button-container  mb-2">  <b-button v-b-modal.modal-add-harvest size="sm" variant="primary" class="table-button">Add Harvest</b-button> </div>
         <table class="table" v-if="harvests">
           <thead>
             <tr>
@@ -23,7 +29,7 @@
               <td>{{ harvest.dry_weight }} kg</td>
               <td>{{ harvest.farm.crop.name }}</td>
               <td> <a href="#" @click="$bvModal.show(`modal-${harvest.id}`)">view</a></td>
-              <td><a href="">edit</a> | <a href="">delete</a></td>
+              <td><a href="">edit</a> | <a @click="deleteHarvest({farmerId: farmerId, farmId: harvest.farm.id, harvestId: harvest.id})">delete</a></td>
             </tr>
           </tbody>
         </table>
@@ -40,7 +46,28 @@
 
         <div v-for="harvest in harvests" :key="harvest.id">
           <b-modal :id="'modal-'+ harvest.id" centered title="Images">
-            <img v-for="image in harvests.photos" :key="image.id" src="" alt="">
+            <img class="harvest-image" v-for="image in harvest.photos" :key="image.id" :src="image.photo" alt="">
+          </b-modal>
+        </div>
+        <div >
+          <b-modal id="modal-add-harvest" centered title="Add Harvest" ok-only ok-variant="primary" ok-title="Add">
+            <div class="form-group">
+              <label for="name">Wet Weight</label>
+              <input type="text" class="form-control" id="wet-weight" placeholder=" Wet weight" v-model="form.wet_weight">
+            </div>
+            <div class="form-group">
+              <label for="name">Dry Weight</label>
+              <input type="text" class="form-control" id="dry-weight" placeholder="Dry weight" v-model="form.dry_weight">
+            </div>
+             <div class="form-group">
+              <label for="name">Photos (3)</label>
+              <input type="file" id="file" ref="file" class="form-control" placeholder="Select photos" multiple accept=".png, .jpg, .jpeg" v-on:change="handleFileUpload()">
+            </div>
+            <template #modal-footer="{}">
+              <b-button variant="primary" @click="submitHarvest()">
+                Save
+              </b-button>
+            </template>
           </b-modal>
         </div>
 
@@ -62,11 +89,16 @@ export default {
   data() {
     return {
       moment: moment,
+      files: [],
       form: {
         farmerId: this.farmerId,
         farmId: this.farmId,
         wet_weight: null,
         dry_weight: null,
+        photo_1: null,
+        photo_2: null,
+        photo_3: null
+
       }
     }
   },
@@ -75,16 +107,48 @@ export default {
   methods: {
     ...mapActions({
       fetchHarvests: 'harvests/fetchHarvests',
-      addHarvest: 'farms/addHarvest'
-    })
+      fetchFarm: 'harvests/fetchFarm',
+      addHarvest: 'harvests/addHarvest',
+      deleteHarvest: 'harvests/deleteHarvest',
+    }),
+    submitHarvest () {
+      let formData = new FormData();
+
+      formData.append('photo_1', this.form.photo_1);
+      formData.append('photo_2', this.form.photo_2);
+      formData.append('photo_3', this.form.photo_3);
+      formData.append('wet_weight', this.form.wet_weight);
+      formData.append('dry_weight', this.form.dry_weight);
+
+      
+
+      this.addHarvest({farmId: this.farmId, farmerId: this.farmerId, data: formData})
+    },
+    handleFileUpload(){
+      let maximum_size = 10485760
+      this.files = this.$refs.file.files
+      if (this.files.length !== 3){
+        alert("Select 3 images!")
+      }
+
+      if (this.files[0].size > maximum_size || this.files[1].size > maximum_size || this.files[2].size > maximum_size){
+        alert("Files should not exceed 10 MB!")
+        this.value = ""
+      }
+      this.form.photo_1 = this.files[0]
+      this.form.photo_2 = this.files[1]
+      this.form.photo_3 = this.files[2]
+    }
   },
   computed: {
     ...mapGetters({
-      harvests: 'harvests/allHarvests'
+      harvests: 'harvests/allHarvests',
+      farm: 'harvests/farm'
     })
   },
   created() {
     this.fetchHarvests({farmerId: this.farmerId, farmId: this.farmId})
+    this.fetchFarm({farmerId: this.farmerId, farmId: this.farmId})
   }
 }
 </script>
@@ -103,6 +167,18 @@ export default {
           border-top: none;
       }
     }
+    .button-container {
+        display: flex;
+        justify-content: flex-end;
+
+        .table-button {
+          align-self: right;
+        }
+      }
   }
+}
+.harvest-image {
+  height: 150px;
+  width: 150px;
 }
 </style>

@@ -1,9 +1,14 @@
 <template>
   <div class="farm container">
-    <h2 class="text-primary"> Farm </h2>
+    <h3 class="text-primary"><span class="text-muted"> <router-link class="text-muted" :to="{ name: 'Farmers'}">Farmers > </router-link></span><span>  Farms </span></h3>
+    <div v-if="farmer">
+      <h4>{{farmer.name}}</h4>
+
+      <h6>id number: {{farmer.id_number}} <br> location: {{farmer.location.address}}</h6>
+    </div>
     <div class="card table-card">
       <div class="card-body">
-        <div class="button-container">  <b-button v-b-modal.modal-add-farm size="sm" variant="primary" class="table-button">Add Farm</b-button> </div>
+        <div class="button-container mb-2">  <b-button v-b-modal.modal-add-farm size="sm" variant="primary" class="table-button">Add Farm</b-button> </div>
         <table class="table" v-if="farms">
           <thead>
             <tr>
@@ -26,7 +31,7 @@
               <td>{{ farm.location.address }}</td>
               <td>{{ farm.crop.name }}</td>
               <td><router-link :to="{ name: 'Harvests', params: { farmerId: farmerId, farmId: farm.id} }">view</router-link></td>
-              <td><a href="">edit</a> | <a href="">delete</a></td>
+              <td><a href="">edit</a> | <a @click="deleteFarm({farmerId: farmerId, farmId: farm.id})">delete</a></td>
             </tr>
           </tbody>
         </table>
@@ -77,8 +82,8 @@
             <p>Selected Position: {{ marker.position }}</p>
             <span>Selected address: {{form.location.address}}</span>
             <template #modal-footer="{}">
-              <b-button size="sm" variant="success" @click="addFarm(form)">
-                OK
+              <b-button  variant="primary" @click="addFarm(form)">
+                Save
               </b-button>
             </template>
           </b-modal>
@@ -131,6 +136,8 @@ export default {
   methods: {
     ...mapActions({
       fetchFarms: 'farms/fetchFarms',
+      fetchFarmer: 'farms/fetchFarmer',
+      deleteFarm: 'farms/deleteFarm',
       addFarm: 'farms/addFarm'
     }),
     geolocate() {
@@ -198,11 +205,13 @@ export default {
   },
   computed: {
     ...mapGetters({
-      farms: 'farms/allFarms'
+      farms: 'farms/allFarms',
+      farmer: 'farms/farmer'
     })
   },
   created() {
     this.fetchFarms(this.farmerId)
+    this.fetchFarmer(this.farmerId)
   }
 }
 </script>

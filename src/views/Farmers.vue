@@ -1,9 +1,9 @@
 <template>
   <div class="farmer container">
-    <h2 class="text-primary"> farmers </h2>
+    <h3 class="text-primary"> Farmers </h3>
     <div class="card table-card">
       <div class="card-body">
-        <div class="button-container">  <b-button v-b-modal.modal-add-farmer size="sm" variant="primary" class="table-button">Add Farmer</b-button> </div>
+        <div class="button-container  mb-2">  <b-button v-b-modal.modal-add-farmer size="sm" variant="primary" class="table-button">Add Farmer</b-button> </div>
         <table class="table" v-if="farmers">
           <thead>
             <tr>
@@ -24,7 +24,7 @@
               <td>{{ farmer.id_number }}</td>
               <td>{{ farmer.location.address }}</td>
               <td><router-link :to="{ name: 'Farms', params: { farmerId: farmer.id} }">view</router-link></td>
-              <td><a href="">edit</a> | <a href="">delete</a></td>
+              <td><a href="">edit</a> | <a  @click="deleteFarmer(farmer.id)">delete</a></td>
             </tr>
           </tbody>
         </table>
@@ -71,8 +71,8 @@
             <p>Selected Position: {{ marker.position }}</p>
             <span>Selected address: {{form.location.address}}</span>
             <template #modal-footer="{}">
-              <b-button size="sm" variant="success" @click="addFarmer(form)">
-                OK
+              <b-button  variant="primary" @click="submitFarmer()">
+                SAve
               </b-button>
             </template>
           </b-modal>
@@ -93,6 +93,7 @@ export default {
   data (){
     return {
       moment: moment,
+      message: '',
       marker: { position: { lat: 0, lng: 20 } },
       center: { lat: 0, lng: 20 },
 
@@ -120,8 +121,18 @@ export default {
   methods: {
     ...mapActions({
       fetchFarmers: 'farmers/fetchFarmers',
+      deleteFarmer: 'farmers/deleteFarmer',
       addFarmer: 'farmers/addFarmer'
     }),
+    submitFarmer() {
+      this.addFarmer(this.form)
+        .then(data => {
+          this.message = data.message
+        })
+        .catch(error => {
+          console.log('>>>>', error)
+        })
+    },
     geolocate() {
       navigator.geolocation.getCurrentPosition((position) => {
         this.marker.position = {

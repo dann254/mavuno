@@ -11,12 +11,7 @@ import Nav from './components/Nav.vue'
 export default {
   components: {
     Nav
-  },
-  data() {
-    return {
-      auth: localStorage.getItem('loggedIn')
-    }
-  },
+  }
 }
 </script>
 

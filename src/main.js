@@ -9,7 +9,8 @@ import Geocoder from "@pderas/vue2-geocoder"
 
 require('@/store/subscriber')
 
-axios.defaults.baseURL = 'http://127.0.0.1:8000/api/'
+axios.defaults.baseURL = process.env.VUE_APP_API_ROOT
+console.log(process.env.VUE_APP_API_ROOT)
 
 Vue.config.productionTip = false
 
@@ -18,7 +19,7 @@ Vue.use(IconsPlugin)
 
 Vue.use(VueGoogleMaps, {
   load: {
-    key: "",
+    key: process.env.VUE_APP_MAPS_API_KEY,
   },
   installComponents: true,
 });
@@ -27,7 +28,7 @@ Vue.use(Geocoder, {
   defaultCountryCode: null, // e.g. 'CA'
   defaultLanguage:    null, // e.g. 'en'
   defaultMode:        'lat-lng', 
-  googleMapsApiKey:   ''
+  googleMapsApiKey:   process.env.VUE_APP_MAPS_API_KEY
 })
 
 store.dispatch('auth/updateAuth', localStorage.getItem('token')).then(() => {

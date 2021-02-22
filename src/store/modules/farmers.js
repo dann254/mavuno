@@ -19,6 +19,11 @@ const actions = {
         const response = await axios.post('/farmers/', data)
 
         commit('newFarmer', response.data.farmer)
+    },
+    async deleteFarmer ({commit}, farmerId){
+        const response = await axios.delete(`/farmers/${farmerId}/`)
+        console.log(response)
+        commit('removeFarmer', farmerId)
     }
     
 }
@@ -29,6 +34,9 @@ const mutations = {
     },
     newFarmer (state, farmer) {
         state.farmers.push(farmer)
+    },
+    removeFarmer (state, id) {
+        state.farmers = state.farmers.filter(farmer => farmer.id !== id)
     }
 }
 
