@@ -19,8 +19,7 @@ const routes = [
         return next({
           name: 'Farmers'
         })
-      }
-      next()
+      } else next()
     }
   },
   {
@@ -32,8 +31,7 @@ const routes = [
         return next({
           name: 'Home'
         })
-      }
-      next()
+      } else next()
     }
   },
   {
@@ -46,8 +44,7 @@ const routes = [
         return next({
           name: 'Home'
         })
-      }
-      next()
+      } else next()
     }
   },
   {
@@ -60,8 +57,7 @@ const routes = [
         return next({
           name: 'Home'
         })
-      }
-      next()
+      } else next()
     }
   },
   {
@@ -69,12 +65,13 @@ const routes = [
     name: 'Statistics',
     component: Statistics,
     beforeEnter: (to, from, next) => {
-      if (!store.getters['auth/authenticated']) {
+
+      let role = store.getters['auth/role']
+      if (!store.getters['auth/authenticated'] || role !== 1) {
         return next({
           name: 'Home'
         })
-      }
-      next()
+      } else next()
     }
   },
 ]

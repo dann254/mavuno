@@ -2,7 +2,8 @@ import axios from 'axios';
 
 const state = {
     token: null,
-    user: null
+    user: null,
+    role: null
 }
 
 const getters = {
@@ -12,6 +13,9 @@ const getters = {
 
     user (state) {
         return state.user
+    },
+    role (state) {
+        return state.role
     }
 }
 
@@ -56,7 +60,13 @@ const mutations = {
         state.token = token
     },
     SET_USER (state, data) {
-        state.token = data
+        state.user = data
+        if (data){
+            state.role = data.role
+        }
+        else {
+            state.role = data
+        }
     },
 }
 

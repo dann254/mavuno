@@ -47,10 +47,18 @@ const mutations = {
         state.farmer = farmer
     },
     newFarm (state, farm) {
-        state.farms.push(farm)
+        if (state.farms){
+            state.farms.push(farm)
+        } else {
+            state.farms = []
+            state.farms.push(farm)
+        }
     },
     removeFarm (state, id) {
         state.farms = state.farms.filter(farm => farm.id !== id)
+        if (state.farms.length < 1){
+            state.farms = null
+        }
     }
 }
 

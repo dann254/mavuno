@@ -3,7 +3,7 @@
     <h3 class="text-primary"> Farmers </h3>
     <div class="card table-card">
       <div class="card-body">
-        <div class="button-container  mb-2">  <b-button v-b-modal.modal-add-farmer size="sm" variant="primary" class="table-button">Add Farmer</b-button> </div>
+        <div class="button-container  mb-2">  <b-button @click="modalShow = !modalShow" size="sm" variant="primary" class="table-button">Add Farmer</b-button> </div>
         <table class="table" v-if="farmers">
           <thead>
             <tr>
@@ -24,7 +24,7 @@
               <td>{{ farmer.id_number }}</td>
               <td>{{ farmer.location.address }}</td>
               <td><router-link :to="{ name: 'Farms', params: { farmerId: farmer.id} }">view</router-link></td>
-              <td><a href="">edit</a> | <a  @click="deleteFarmer(farmer.id)">delete</a></td>
+              <td> <a class="text-danger action-clk"  @click="deleteFarmer(farmer.id)">delete</a></td>
             </tr>
           </tbody>
         </table>
@@ -40,14 +40,20 @@
         </div>
 
         <div >
-          <b-modal id="modal-add-farmer" centered title="Add Farmer" ok-only ok-variant="primary" ok-title="Add">
+          <b-modal id="modal-add-farmer" v-model="modalShow" centered title="Add Farmer" ok-only ok-variant="primary" ok-title="Add">
             <div class="form-group">
               <label for="name">Name</label>
               <input type="text" class="form-control" id="name" placeholder="name" v-model="form.name">
+              <div class="text-danger mb-2" v-if="createErrors.name">
+                  {{createErrors.name}}
+              </div>
             </div>
             <div class="form-group">
               <label for="name">Id Number</label>
-              <input type="text" class="form-control" id="id-number" placeholder="id number" v-model="form.id_number">
+              <input type="number" min="0" class="form-control" id="id-number" placeholder="id number" v-model="form.id_number">
+              <div class="text-danger mb-2" v-if="createErrors.id_number">
+                  {{createErrors.id_number}}
+              </div>
             </div>
             <GmapMap
               :center="center"
@@ -70,9 +76,12 @@
 
             <p>Selected Position: {{ marker.position }}</p>
             <span>Selected address: {{form.location.address}}</span>
+            <div class="text-danger mb-2 mt-2" v-if="createErrors.general">
+                  {{createErrors.general}}
+              </div>
             <template #modal-footer="{}">
               <b-button  variant="primary" @click="submitFarmer()">
-                SAve
+                Save
               </b-button>
             </template>
           </b-modal>
@@ -94,6 +103,7 @@ export default {
     return {
       moment: moment,
       message: '',
+      modalShow: false,
       marker: { position: { lat: 0, lng: 20 } },
       center: { lat: 0, lng: 20 },
 
@@ -113,6 +123,11 @@ export default {
           administrative_area: null,
           location_metadata: {}
         }
+      },
+      createErrors: {
+        name: null,
+        id_number: null,
+        general: null,
       }
     }
   },
@@ -125,13 +140,44 @@ export default {
       addFarmer: 'farmers/addFarmer'
     }),
     submitFarmer() {
-      this.addFarmer(this.form)
-        .then(data => {
-          this.message = data.message
+      let errors = false
+
+      this.createErrors.name= null
+      this.createErrors.id_number= null
+      this.createErrors.general= null
+
+      if (!this.form.name){
+        errors = true
+        this.createErrors.name = "name cannot be blank"
+      }
+      if (!this.form.id_number){
+        errors = true
+        this.createErrors.id_number = "Id number cannot be blank"
+      }
+      if (this.farmers){
+        let found = this.farmers.some(ele => ele.id_number == this.form.id_number);
+       console.log('>>>>>>>>', found, this.farmers)
+
+        if (found){
+          this.createErrors.id_number = "Farmer with that ID number already exists"
+        }
+      }
+
+      if (!errors){
+        this.addFarmer(this.form)
+        .then(() => {
+          this.hideModal()
         })
         .catch(error => {
           console.log('>>>>', error)
+          this.createErrors.general = 'something went wrong'
         })
+      }
+    },
+    hideModal() {
+      this.form.name = null
+      this.form.id_number = null
+      this.modalShow = false
     },
     geolocate() {
       navigator.geolocation.getCurrentPosition((position) => {

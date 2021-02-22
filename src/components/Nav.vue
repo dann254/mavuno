@@ -3,7 +3,7 @@
     <div class="n-brand h1">mavuno</div>
     <div class="n-links">
       <router-link :to="{ name: 'Farmers' }">Home</router-link>
-      <router-link :to="{ name: 'Statistics' }">Statistics</router-link>
+      <router-link :to="{ name: 'Statistics' }" v-if="role==1">Statistics</router-link>
       <a href="#" @click.prevent="logout">logout</a>
     </div>
   </div>
@@ -24,7 +24,8 @@ export default {
   },
   computed: {
     ...mapGetters({
-      authenticated: 'auth/authenticated'
+      authenticated: 'auth/authenticated',
+      role: 'auth/role'
     })
   },
   methods: {

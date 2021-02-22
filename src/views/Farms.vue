@@ -8,7 +8,7 @@
     </div>
     <div class="card table-card">
       <div class="card-body">
-        <div class="button-container mb-2">  <b-button v-b-modal.modal-add-farm size="sm" variant="primary" class="table-button">Add Farm</b-button> </div>
+        <div class="button-container mb-2">  <b-button @click="modalShow = !modalShow" size="sm" variant="primary" class="table-button">Add Farm</b-button> </div>
         <table class="table" v-if="farms">
           <thead>
             <tr>
@@ -31,7 +31,7 @@
               <td>{{ farm.location.address }}</td>
               <td>{{ farm.crop.name }}</td>
               <td><router-link :to="{ name: 'Harvests', params: { farmerId: farmerId, farmId: farm.id} }">view</router-link></td>
-              <td><a href="">edit</a> | <a @click="deleteFarm({farmerId: farmerId, farmId: farm.id})">delete</a></td>
+              <td><a class="text-danger action-clk" @click="deleteFarm({farmerId: farmerId, farmId: farm.id})">delete</a></td>
             </tr>
           </tbody>
         </table>
@@ -47,18 +47,27 @@
         </div>
 
         <div >
-          <b-modal id="modal-add-farm" centered title="Add Farm" ok-only ok-variant="primary" ok-title="Add">
+          <b-modal id="modal-add-farm" v-model="modalShow" centered title="Add Farm" ok-only ok-variant="primary" ok-title="Add">
             <div class="form-group">
               <label for="name">Size</label>
-              <input type="text" class="form-control" id="size" placeholder="size" v-model="form.size">
+              <input type="number" min="0" class="form-control" id="size" placeholder="size" v-model="form.size">
+              <div class="text-danger mb-2" v-if="createErrors.size">
+                  {{createErrors.size}}
+              </div>
             </div>
             <div class="form-group">
               <label for="name">Deed Number</label>
-              <input type="text" class="form-control" id="deed-number" placeholder="deed number" v-model="form.deed_number">
+              <input type="number" min="0" class="form-control" id="deed-number" placeholder="deed number" v-model="form.deed_number">
+              <div class="text-danger mb-2" v-if="createErrors.deed_number">
+                  {{createErrors.deed_number}}
+              </div>
             </div>
             <div class="form-group">
               <label for="name">Crop</label>
               <input type="text" class="form-control" id="crop" placeholder="crop" v-model="form.crop">
+              <div class="text-danger mb-2" v-if="createErrors.crop">
+                  {{createErrors.crop}}
+              </div>
             </div>
             <GmapMap
               :center="center"
@@ -81,8 +90,11 @@
 
             <p>Selected Position: {{ marker.position }}</p>
             <span>Selected address: {{form.location.address}}</span>
+            <div class="text-danger mb-2 mt-2" v-if="createErrors.general">
+                {{createErrors.general}}
+            </div>
             <template #modal-footer="{}">
-              <b-button  variant="primary" @click="addFarm(form)">
+              <b-button  variant="primary" @click="submitFarm()">
                 Save
               </b-button>
             </template>
@@ -107,6 +119,7 @@ export default {
   data() {
     return {
       moment: moment,
+      modalShow: false,
       marker: { position: { lat: 0, lng: 20 } },
       center: { lat: 0, lng: 20 },
 
@@ -128,6 +141,12 @@ export default {
           administrative_area: null,
           location_metadata: {}
         }
+      },
+      createErrors: {
+        size: null,
+        deed_number: null,
+        crop: null,
+        general: null
       }
     }
   },
@@ -140,6 +159,54 @@ export default {
       deleteFarm: 'farms/deleteFarm',
       addFarm: 'farms/addFarm'
     }),
+    submitFarm(){
+      let errors = false
+
+      this.createErrors.size= null
+      this.createErrors.deed_number= null
+      this.createErrors.crop= null
+      this.createErrors.general= null
+
+      if (!this.form.size){
+        errors = true
+        this.createErrors.size = "size cannot be blank"
+      }
+      if (!this.form.deed_number){
+        errors = true
+        this.createErrors.deed_number = "Deed number cannot be blank"
+      }
+      if (!this.form.crop){
+        errors = true
+        this.createErrors.crop = "Crop cannot be blank"
+      }
+      if (this.farms){
+        let found = this.farms.some(ele => ele.deed_number == this.form.deed_number);
+
+        if (found){
+          this.createErrors.deed_number = "Farm with that deed number already exists"
+        }
+      }
+      if (this.farmer.location.administrative_area != this.form.location.administrative_area){
+        this.createErrors.general= 'Farm must be within the farmer location'
+      }
+
+      if (!errors){
+        this.addFarm(this.form)
+        .then(() => {
+          this.hideModal()
+        })
+        .catch(error => {
+          console.log('>>>>', error)
+          this.createErrors.general = 'something went wrong'
+        })
+      }
+    },
+    hideModal() {
+      this.form.size = null
+      this.form.deed_number = null
+      this.form.crop = null
+      this.modalShow = false
+    },
     geolocate() {
       navigator.geolocation.getCurrentPosition((position) => {
         this.marker.position = {

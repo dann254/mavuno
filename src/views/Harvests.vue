@@ -8,7 +8,7 @@
     </div>
     <div class="card table-card">
       <div class="card-body">
-         <div class="button-container  mb-2">  <b-button v-b-modal.modal-add-harvest size="sm" variant="primary" class="table-button">Add Harvest</b-button> </div>
+         <div class="button-container  mb-2">  <b-button @click="modalShow = !modalShow" size="sm" variant="primary" class="table-button">Add Harvest</b-button> </div>
         <table class="table" v-if="harvests">
           <thead>
             <tr>
@@ -29,7 +29,7 @@
               <td>{{ harvest.dry_weight }} kg</td>
               <td>{{ harvest.farm.crop.name }}</td>
               <td> <a href="#" @click="$bvModal.show(`modal-${harvest.id}`)">view</a></td>
-              <td><a href="">edit</a> | <a @click="deleteHarvest({farmerId: farmerId, farmId: harvest.farm.id, harvestId: harvest.id})">delete</a></td>
+              <td><a class="text-danger action-clk" @click="deleteHarvest({farmerId: farmerId, farmId: harvest.farm.id, harvestId: harvest.id})">delete</a></td>
             </tr>
           </tbody>
         </table>
@@ -50,18 +50,27 @@
           </b-modal>
         </div>
         <div >
-          <b-modal id="modal-add-harvest" centered title="Add Harvest" ok-only ok-variant="primary" ok-title="Add">
+          <b-modal id="modal-add-harvest" v-model="modalShow" centered title="Add Harvest" ok-only ok-variant="primary" ok-title="Add">
             <div class="form-group">
               <label for="name">Wet Weight</label>
               <input type="text" class="form-control" id="wet-weight" placeholder=" Wet weight" v-model="form.wet_weight">
+              <div class="text-danger mb-2" v-if="createErrors.wet_weight">
+                  {{createErrors.wet_weight}}
+              </div>
             </div>
             <div class="form-group">
               <label for="name">Dry Weight</label>
               <input type="text" class="form-control" id="dry-weight" placeholder="Dry weight" v-model="form.dry_weight">
+              <div class="text-danger mb-2" v-if="createErrors.dry_weight">
+                  {{createErrors.dry_weight}}
+              </div>
             </div>
              <div class="form-group">
               <label for="name">Photos (3)</label>
               <input type="file" id="file" ref="file" class="form-control" placeholder="Select photos" multiple accept=".png, .jpg, .jpeg" v-on:change="handleFileUpload()">
+            </div>
+            <div class="text-danger mb-2 mt-2" v-if="createErrors.general">
+                {{createErrors.general}}
             </div>
             <template #modal-footer="{}">
               <b-button variant="primary" @click="submitHarvest()">
@@ -89,6 +98,7 @@ export default {
   data() {
     return {
       moment: moment,
+      modalShow: false,
       files: [],
       form: {
         farmerId: this.farmerId,
@@ -99,6 +109,11 @@ export default {
         photo_2: null,
         photo_3: null
 
+      },
+      createErrors: {
+        dry_weight: null,
+        wet_weight: null,
+        general: null
       }
     }
   },
@@ -112,17 +127,66 @@ export default {
       deleteHarvest: 'harvests/deleteHarvest',
     }),
     submitHarvest () {
-      let formData = new FormData();
+      let errors = false
 
-      formData.append('photo_1', this.form.photo_1);
-      formData.append('photo_2', this.form.photo_2);
-      formData.append('photo_3', this.form.photo_3);
-      formData.append('wet_weight', this.form.wet_weight);
-      formData.append('dry_weight', this.form.dry_weight);
+      this.createErrors.dry_weight= null
+      this.createErrors.wet_weight= null
+      this.createErrors.general= null
 
-      
+      if (!this.form.dry_weight){
+        errors = true
+        this.createErrors.dry_weight = "Dry weight cannot be blank"
+      }
+      if (!this.form.wet_weight){
+        errors = true
+        this.createErrors.wet_weight = "Wet weight cannot be blank"
+      }
+      if (this.form.wet_weight && this.form.dry_weight){
+         if (this.form.wet_weight <= this.form.dry_weight){
+        errors = true
+        this.createErrors.dry_weight = "Dry weight cannot be greater than wet weight"
+      }
+      }
+      if (this.files.length !== 3){
+        errors = true
+        this.createErrors.general = "Select 3 images!"
+      }
 
-      this.addHarvest({farmId: this.farmId, farmerId: this.farmerId, data: formData})
+      let maximum_size = 10485760
+      if (this.files.length === 3){
+        if (this.files[0].size > maximum_size || this.files[1].size > maximum_size || this.files[2].size > maximum_size){
+          errors = true
+          this.createErrors.general = "Files should not exceed 10 MB!"
+        }
+      }
+
+      if (!errors){
+        let formData = new FormData();
+
+        formData.append('photo_1', this.form.photo_1);
+        formData.append('photo_2', this.form.photo_2);
+        formData.append('photo_3', this.form.photo_3);
+        formData.append('wet_weight', this.form.wet_weight);
+        formData.append('dry_weight', this.form.dry_weight);
+
+        
+
+        this.addHarvest({farmId: this.farmId, farmerId: this.farmerId, data: formData}).then(() => {
+          this.hideModal()
+        })
+        .catch(error => {
+          console.log('>>>>', error)
+          this.createErrors.general = 'something went wrong'
+        })
+      }
+    },
+    hideModal() {
+      this.form.wet_weight = null
+      this.form.dry_weight = null
+      this.form.photo_1 = null
+      this.form.photo_2 = null
+      this.form.photo_3 = null
+      this.modalShow = false
     },
     handleFileUpload(){
       let maximum_size = 10485760

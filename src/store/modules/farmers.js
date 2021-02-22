@@ -30,13 +30,25 @@ const actions = {
 
 const mutations = {
     setFarmers (state, farmers) {
-        state.farmers = farmers
+        if (farmers.length < 1){
+            state.farmers = null
+        } else {
+            state.farmers = farmers
+        }
     },
     newFarmer (state, farmer) {
-        state.farmers.push(farmer)
+        if (state.farmers){
+            state.farmers.push(farmer)
+        } else {
+            state.farmers = []
+            state.farmers.push(farmer)
+        }
     },
     removeFarmer (state, id) {
         state.farmers = state.farmers.filter(farmer => farmer.id !== id)
+        if (state.farmers.length < 1){
+            state.farmers = null
+        }
     }
 }
 
