@@ -1,7 +1,7 @@
 <template>
   <div class="home" v-if="!authenticated">
     <div class="row">
-      <div class="col-5 panel login-panel">
+      <div class="col panel login-panel">
         <h1 class="display-3 company-name">mavuno</h1>
         <div class="login-form">
           <div class="h3">Login</div>
@@ -15,11 +15,11 @@
           </div>
           <div class="text-danger mb-2" v-if="error">
               Invalid email or password
-            </div>
+          </div>
           <button class="btn btn-primary" @click="submit">Login</button>
         </div>
       </div>
-      <div class="col panel image-panel"></div>
+      <div class="col-7 col-md-none panel image-panel"></div>
     </div>
   </div>
 </template>
