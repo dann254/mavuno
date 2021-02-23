@@ -17,6 +17,7 @@ Mavuno is a product that allows collection of data about farmers, farms and thei
 - add user management page.
 - design improvements
 - improve responsiveness
+- write tests
 
 ### Relevant Info
 - Supervisors are created through the API's console.

@@ -176,7 +176,7 @@ export default {
         })
         .catch(error => {
           console.log('>>>>', error)
-          this.createErrors.general = 'something went wrong'
+          this.createErrors.general = 'Images must be unique'
         })
       }
     },
