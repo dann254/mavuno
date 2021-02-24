@@ -69,7 +69,7 @@
                     {{updateErrors[(farmer.id).toString()].id_number}}
                 </div>
               </div>
-              <GmapMap
+              <!-- <GmapMap
                 :center="center"
                 :zoom="5"
                 map-style-id="roadmap"
@@ -91,7 +91,7 @@
 
               <div>Selected Latitude: {{ marker.position.lat }}</div>
               <div>Selected Longitude: {{ marker.position.lng }}</div>
-              <span>Selected address: {{form.location.address}}</span>
+              <span>Selected address: {{form.location.address}}</span> -->
               <div class="text-danger mb-2 mt-2" v-if="updateErrors[(farmer.id).toString()].general">
                     {{updateErrors[(farmer.id).toString()].general}}
                 </div>
@@ -320,15 +320,16 @@ export default {
       this.form.id_number = null
       this.modalShow = false
     },
-    geolocate(id = null) {
+    geolocate(e, id = null) {
       navigator.geolocation.getCurrentPosition((position) => {
+        console.log(e, id)
         if (id){
           this.editForm[(id).toString()].marker.position = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
           };
         } else {
-          this.editForm[(id).toString()].marker.position = {
+          this.marker.position = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
           };
@@ -353,10 +354,8 @@ export default {
     panToMarker(id = null) {
       if (id){
         this.$refs.mapRef.panTo(this.editForm[(id).toString()].marker.position);
-        this.$refs.mapRef.setZoom(18);
       } else {
         this.$refs.mapRef.panTo(this.marker.position);
-        this.$refs.mapRef.setZoom(18);
       }
     },
 
@@ -464,12 +463,12 @@ export default {
         this.loading = false
       })
     
-    this.geocode(this.marker.position)
-    this.geolocate();
   },
   mounted() {
-    // this.geocode(this.marker.position)
-    // this.geolocate();
+    this.geocode(this.marker.position)
+    if (!this.loading){
+      this.geolocate();
+    }
   },
   beforeUpdate() {
     if (this.farmers) {
