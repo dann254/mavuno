@@ -1,12 +1,18 @@
 <template>
   <div class="harvest container">
     <h3 class="text-primary"><span class="text-muted"> <router-link class="text-muted" :to="{ name: 'Farmers'}">Farmers > </router-link></span><span  class="text-muted"><router-link class="text-muted" :to="{ name: 'Farms', params: { farmerId: farmerId} }"> Farms > </router-link></span><span>  Harvests </span> </h3>
-    <div v-if="farm">
+    <div class="loader-container-page" v-if="loading">
+      <Loader/>
+    </div>
+    <Loader v-if="loadingFarm && !loading"/>
+
+    <div v-if="farm && !loadingFarm">
       <h4>{{farm.farmer.name}}</h4>
 
       <h6>id number: {{farm.farmer.id_number}} <br> location: {{farm.farmer.location.address}}  <br> Farm Deed: {{farm.deed_number}}</h6>
     </div>
-    <div class="card table-card">
+
+    <div class="card table-card" v-if="!loading">
       <div class="card-body">
          <div class="button-container  mb-2">  <b-button @click="modalShow = !modalShow" size="sm" variant="primary" class="table-button">Add Harvest</b-button> </div>
         <table class="table" v-if="harvests">
@@ -29,7 +35,7 @@
               <td>{{ harvest.dry_weight }} kg</td>
               <td>{{ harvest.farm.crop.name }}</td>
               <td> <a href="#" @click="$bvModal.show(`modal-${harvest.id}`)">view</a></td>
-              <td><a class="text-danger action-clk" @click="deleteHarvest({farmerId: farmerId, farmId: harvest.farm.id, harvestId: harvest.id})">delete</a></td>
+              <td> <a class="text-danger action-clk" @click="$bvModal.show(`modal-delete-harvest-${harvest.id}`)">delete</a></td>
             </tr>
           </tbody>
         </table>
@@ -45,8 +51,18 @@
         </div>
 
         <div v-for="harvest in harvests" :key="harvest.id">
-          <b-modal :id="'modal-'+ harvest.id" centered title="Images">
+          <b-modal :id="'modal-'+ harvest.id" centered title="Images" hide-footer>
             <img class="harvest-image" v-for="image in harvest.photos" :key="image.id" :src="image.photo" alt="">
+          </b-modal>
+
+          <b-modal :id="'modal-delete-harvest-'+ harvest.id" centered title="Delete Harvest" ok-only ok-variant="primary" ok-title="Add">
+            <div>Are you sure you want to delete {{moment(harvest.created_at).format('YYYY')}} harvest?</div>
+            <template #modal-footer="{}">
+              <Loader v-if="deletingHarvest"/>
+              <b-button  variant="danger" :disabled="deletingHarvest" @click="delHarvest(harvest.id)">
+                Delete
+              </b-button>
+            </template>
           </b-modal>
         </div>
         <div >
@@ -73,7 +89,8 @@
                 {{createErrors.general}}
             </div>
             <template #modal-footer="{}">
-              <b-button variant="primary" @click="submitHarvest()">
+              <Loader v-if="savingHarvest"/>
+              <b-button variant="primary" :disabled="savingHarvest" @click="submitHarvest()">
                 Save
               </b-button>
             </template>
@@ -88,6 +105,7 @@
 <script>
 import { mapGetters, mapActions } from 'vuex'
 import moment from 'moment'
+import Loader from '../components/Loader.vue'
 
 export default {
   name: 'Harvests',
@@ -99,6 +117,10 @@ export default {
     return {
       moment: moment,
       modalShow: false,
+      loading: false,
+      loadingFarm: false,
+      savingHarvest: false,
+      deletingHarvest: false,
       files: [],
       form: {
         farmerId: this.farmerId,
@@ -118,6 +140,7 @@ export default {
     }
   },
   components: {
+    Loader
   },
   methods: {
     ...mapActions({
@@ -161,6 +184,7 @@ export default {
       }
 
       if (!errors){
+        this.savingHarvest = true
         let formData = new FormData();
 
         formData.append('photo_1', this.form.photo_1);
@@ -173,12 +197,25 @@ export default {
 
         this.addHarvest({farmId: this.farmId, farmerId: this.farmerId, data: formData}).then(() => {
           this.hideModal()
+          this.savingHarvest = false
         })
         .catch(error => {
           console.log('>>>>', error)
+          this.savingHarvest = false
           this.createErrors.general = 'Images must be unique'
         })
       }
+    },
+    delHarvest(id) {
+      this.deletingHarvest = true
+        this.deleteHarvest({farmerId: this.farmerId, farmId: this.farmId, harvestId: id})
+        .then(() => {
+          this.deletingHarvest = false
+        })
+        .catch(error => {
+          this.deletingHarvest = false
+          console.log('>>>>', error)
+        })
     },
     hideModal() {
       this.form.wet_weight = null
@@ -211,8 +248,22 @@ export default {
     })
   },
   created() {
+    this.loading = true
+    this.loadingFarm = true
     this.fetchHarvests({farmerId: this.farmerId, farmId: this.farmId})
+      .then(() => {
+        this.loading = false
+      })
+      .catch(() => {
+        this.loading = false
+      })
     this.fetchFarm({farmerId: this.farmerId, farmId: this.farmId})
+      .then(() => {
+        this.loadingFarm = false
+      })
+      .catch(() => {
+        this.loadingFarm = false
+      })
   }
 }
 </script>

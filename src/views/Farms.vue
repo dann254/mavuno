@@ -1,12 +1,16 @@
 <template>
   <div class="farm container">
     <h3 class="text-primary"><span class="text-muted"> <router-link class="text-muted" :to="{ name: 'Farmers'}">Farmers > </router-link></span><span>  Farms </span></h3>
-    <div v-if="farmer">
+    <div class="loader-container-page" v-if="loading">
+      <Loader/>
+    </div>
+    <Loader v-if="loadingFarmer && !loading"/>
+    <div v-if="farmer && !loadingFarmer">
       <h4>{{farmer.name}}</h4>
 
       <h6>id number: {{farmer.id_number}} <br> location: {{farmer.location.address}}</h6>
     </div>
-    <div class="card table-card">
+    <div class="card table-card" v-if="!loading">
       <div class="card-body">
         <div class="button-container mb-2">  <b-button @click="modalShow = !modalShow" size="sm" variant="primary" class="table-button">Add Farm</b-button> </div>
         <table class="table" v-if="farms">
@@ -31,7 +35,7 @@
               <td>{{ farm.location.address }}</td>
               <td>{{ farm.crop.name }}</td>
               <td><router-link :to="{ name: 'Harvests', params: { farmerId: farmerId, farmId: farm.id} }">view</router-link></td>
-              <td><a class="text-danger action-clk" @click="deleteFarm({farmerId: farmerId, farmId: farm.id})">delete</a></td>
+              <td> <a class="text-danger action-clk" @click="$bvModal.show(`modal-delete-farm-${farm.id}`)">delete</a></td>
             </tr>
           </tbody>
         </table>
@@ -47,6 +51,18 @@
         </div>
 
         <div >
+          <div v-for="farm in farms" :key="farm.id">
+            <b-modal :id="'modal-delete-farm-'+ farm.id" centered title="Delete Farm" ok-only ok-variant="primary" ok-title="Add">
+              <div>Are you sure you want to delete farm? <br><br> {{farm.deed_number}}</div>
+              <template #modal-footer="{}">
+                <Loader v-if="deletingFarm"/>
+                <b-button  variant="danger" :disabled="deletingFarm" @click="delFarm(farm.id)">
+                  Delete
+                </b-button>
+              </template>
+            </b-modal>
+          </div>
+
           <b-modal id="modal-add-farm" v-model="modalShow" centered title="Add Farm" ok-only ok-variant="primary" ok-title="Add">
             <div class="form-group">
               <label for="name">Size</label>
@@ -74,7 +90,8 @@
               :zoom="5"
               map-style-id="roadmap"
               :options="mapOptions"
-              style="width: 48vmin; height: 40vmin"
+              style="width: 46.5vmin; height: 40vmin"
+              class="map"
               ref="mapRef"
               @click="handleMapClick"
             >
@@ -88,13 +105,15 @@
             </GmapMap>
             <button class="btn btn-sm btn-secondary mt-2" @click="geolocate">Detect Location</button>
 
-            <p>Selected Position: {{ marker.position }}</p>
-            <span>Selected address: {{form.location.address}}</span>
+            <div>Selected Latitude: {{ marker.position.lat }}</div>
+            <div>Selected Longitude: {{ marker.position.lng }}</div>
+            <span class="">Selected address: {{form.location.address}}</span>
             <div class="text-danger mb-2 mt-2" v-if="createErrors.general">
                 {{createErrors.general}}
             </div>
             <template #modal-footer="{}">
-              <b-button  variant="primary" @click="submitFarm()">
+              <Loader v-if="savingFarm"/>
+              <b-button  variant="primary" :disabled="savingFarm" @click="submitFarm()">
                 Save
               </b-button>
             </template>
@@ -109,6 +128,7 @@
 <script>
 import { mapGetters, mapActions } from 'vuex'
 import moment from 'moment'
+import Loader from '../components/Loader.vue'
 
 
 export default {
@@ -119,6 +139,10 @@ export default {
   data() {
     return {
       moment: moment,
+      loading: false,
+      loadingFarmer: false,
+      deletingFarm: false,
+      savingFarm: false,
       modalShow: false,
       marker: { position: { lat: 0, lng: 20 } },
       center: { lat: 0, lng: 20 },
@@ -151,6 +175,7 @@ export default {
     }
   },
   components: {
+    Loader
   },
   methods: {
     ...mapActions({
@@ -191,15 +216,29 @@ export default {
       }
 
       if (!errors){
+        this.savingFarm = true
         this.addFarm(this.form)
         .then(() => {
+          this.savingFarm = false
           this.hideModal()
         })
         .catch(error => {
           console.log('>>>>', error)
           this.createErrors.general = 'something went wrong'
+          this.savingFarm = false
         })
       }
+    },
+    delFarm(id) {
+      this.deletingFarm = true
+        this.deleteFarm({farmerId: this.farmerId, farmId: id})
+        .then(() => {
+          this.deletingFarm = false
+        })
+        .catch(error => {
+          this.deletingFarm = false
+          console.log('>>>>', error)
+        })
     },
     hideModal() {
       this.form.size = null
@@ -277,8 +316,27 @@ export default {
     })
   },
   created() {
+    this.loading = true
     this.fetchFarms(this.farmerId)
+      .then(() => {
+        this.loading = false
+      })
+      .catch(() => {
+        this.loading = false
+      })
+
+    this.loadingFarmer = true
+
     this.fetchFarmer(this.farmerId)
+      .then(() => {
+        this.loadingFarmer = false
+      })
+      .catch(() => {
+        this.loadingFarmer = false
+      })
+
+    this.geocode(this.marker.position)
+    this.geolocate();
   }
 }
 </script>

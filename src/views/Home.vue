@@ -16,7 +16,8 @@
           <div class="text-danger mb-2" v-if="error">
               Invalid email or password
           </div>
-          <button class="btn btn-primary" @click="submit">Login</button>
+          <Loader v-if="loading"/>
+          <button class="btn btn-primary" :disabled="loading"  @click="submit">Login</button>
         </div>
       </div>
       <div class="col-7 col-md-none panel image-panel"></div>
@@ -26,14 +27,17 @@
 
 <script>
 import { mapActions, mapGetters } from 'vuex'
+import Loader from '../components/Loader.vue'
 
 
 export default {
   name: 'Home',
   components: {
+    Loader
   },
   data () {
     return {
+      loading: false,
       form: {
         email: '',
         password: ''
@@ -46,14 +50,17 @@ export default {
       signIn: 'auth/signIn'
     }),
     submit () {
+      this.loading = true
       this.signIn(this.form)
         .then(success => {
           this.$router.push({name: 'Farmers'})
           console.log(success)
+          this.loading = false
         })
         .catch(error => {
           this.error = true;
           console.log(error)
+          this.loading = false
         })
     },
     redirect() {

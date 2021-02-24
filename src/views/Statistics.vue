@@ -2,7 +2,10 @@
   <div class="stats container">
     <h3 class="text-primary"> stats </h3>
     
-    <div v-if="stats">
+    <div class="loader-container-page" v-if="loading">
+      <Loader/>
+    </div>
+    <div v-if="stats && !loading">
       <div class="mt-4">
         <h4 class="text-muted mt-5">Harvests</h4>
         <div class="row mt-3 mx-1">
@@ -51,11 +54,18 @@
 
 <script>
 import { mapGetters, mapActions } from 'vuex'
+import Loader from '../components/Loader.vue'
 
 
 export default {
   name: 'Statistics',
   components: {
+    Loader
+  },
+  data (){
+    return {
+      loading: false,
+    }
   },
   methods: {
     ...mapActions({
@@ -68,7 +78,14 @@ export default {
     })
   },
   created() {
+    this.loading = true
     this.fetchStats()
+      .then(() => {
+        this.loading = false
+      })
+      .catch(() => {
+        this.loading = false
+      })
   }
 }
 </script>

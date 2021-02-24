@@ -1,7 +1,10 @@
 <template>
   <div class="farmer container">
     <h3 class="text-primary"> Farmers </h3>
-    <div class="card table-card">
+    <div class="loader-container-page" v-if="loading">
+      <Loader/>
+    </div>
+    <div class="card table-card" v-if="!loading">
       <div class="card-body">
         <div class="button-container  mb-2">  <b-button @click="modalShow = !modalShow" size="sm" variant="primary" class="table-button">Add Farmer</b-button> </div>
         <table class="table" v-if="farmers">
@@ -24,7 +27,7 @@
               <td>{{ farmer.id_number }}</td>
               <td>{{ farmer.location.address }}</td>
               <td><router-link :to="{ name: 'Farms', params: { farmerId: farmer.id} }">view</router-link></td>
-              <td> <a class="text-danger action-clk"  @click="deleteFarmer(farmer.id)">delete</a></td>
+              <td> <a class="text-danger action-clk" @click="$bvModal.show(`modal-delete-farmer-${farmer.id}`)">delete</a></td>
             </tr>
           </tbody>
         </table>
@@ -40,6 +43,18 @@
         </div>
 
         <div >
+          <div v-for="farmer in farmers" :key="farmer.id">
+            <b-modal :id="'modal-delete-farmer-'+ farmer.id" centered title="Delete Farmer" ok-only ok-variant="primary" ok-title="Add">
+            <div>Are you sure you want to delete farmer? <br><br> {{farmer.name}}</div>
+            <template #modal-footer="{}">
+              <Loader v-if="deletingFarmer"/>
+              <b-button  variant="danger" :disabled="deletingFarmer" @click="delFarmer(farmer.id)">
+                Delete
+              </b-button>
+            </template>
+          </b-modal>
+          </div>
+
           <b-modal id="modal-add-farmer" v-model="modalShow" centered title="Add Farmer" ok-only ok-variant="primary" ok-title="Add">
             <div class="form-group">
               <label for="name">Name</label>
@@ -60,9 +75,10 @@
               :zoom="5"
               map-style-id="roadmap"
               :options="mapOptions"
-              style="width: 48vmin; height: 40vmin"
+              style="width: 46.5vmin; height: 40vmin"
               ref="mapRef"
               @click="handleMapClick"
+              class="map"
             >
               <GmapMarker
                 :position="marker.position"
@@ -74,13 +90,15 @@
             </GmapMap>
             <button class="btn btn-sm btn-secondary mt-2" @click="geolocate">Detect Location</button>
 
-            <p>Selected Position: {{ marker.position }}</p>
+            <div>Selected Latitude: {{ marker.position.lat }}</div>
+            <div>Selected Longitude: {{ marker.position.lng }}</div>
             <span>Selected address: {{form.location.address}}</span>
             <div class="text-danger mb-2 mt-2" v-if="createErrors.general">
                   {{createErrors.general}}
               </div>
             <template #modal-footer="{}">
-              <b-button  variant="primary" @click="submitFarmer()">
+              <Loader v-if="savingFarmer"/>
+              <b-button  variant="primary" :disabled="savingFarmer" @click="submitFarmer()">
                 Save
               </b-button>
             </template>
@@ -95,12 +113,16 @@
 <script>
 import { mapGetters, mapActions } from 'vuex'
 import moment from 'moment'
+import Loader from '../components/Loader.vue'
 
 
 export default {
   name: 'Farmer',
   data (){
     return {
+      loading: false,
+      savingFarmer: false,
+      deletingFarmer: false,
       moment: moment,
       message: '',
       modalShow: false,
@@ -132,6 +154,7 @@ export default {
     }
   },
   components: {
+    Loader
   },
   methods: {
     ...mapActions({
@@ -164,15 +187,29 @@ export default {
       }
 
       if (!errors){
+        this.savingFarmer = true
         this.addFarmer(this.form)
         .then(() => {
+          this.savingFarmer = false
           this.hideModal()
         })
         .catch(error => {
+          this.savingFarmer = false
           console.log('>>>>', error)
           this.createErrors.general = 'something went wrong'
         })
       }
+    },
+    delFarmer(id) {
+      this.deletingFarmer = true
+        this.deleteFarmer(id)
+        .then(() => {
+          this.deletingFarmer = false
+        })
+        .catch(error => {
+          this.deletingFarmer = false
+          console.log('>>>>', error)
+        })
     },
     hideModal() {
       this.form.name = null
@@ -248,11 +285,21 @@ export default {
     })
   },
   created() {
+    this.loading = true
     this.fetchFarmers()
-  },
-   mounted() {
+      .then(() => {
+        this.loading = false
+      })
+      .catch(() => {
+        this.loading = false
+      })
+    
     this.geocode(this.marker.position)
     this.geolocate();
+  },
+   mounted() {
+    // this.geocode(this.marker.position)
+    // this.geolocate();
   },
 }
 </script>
