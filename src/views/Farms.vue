@@ -1,14 +1,14 @@
 <template>
   <div class="farm container">
     <h3 class="text-primary"><span class="text-muted"> <router-link class="text-muted" :to="{ name: 'Farmers'}">Farmers > </router-link></span><span>  Farms </span></h3>
-    <div class="loader-container-page" v-if="loading">
-      <Loader/>
-    </div>
     <Loader v-if="loadingFarmer && !loading"/>
     <div v-if="farmer && !loadingFarmer">
       <h4>{{farmer.name}}</h4>
 
-      <h6>id number: {{farmer.id_number}} <br> location: {{farmer.location.address}}</h6>
+      <h6>id number: {{farmer.id_number}} <br> Location: {{farmer.location.address}}</h6>
+    </div>
+    <div class="loader-container-page" v-if="loading">
+      <Loader/>
     </div>
     <div class="card table-card" v-if="!loading">
       <div class="card-body">
@@ -33,9 +33,9 @@
               <td>{{moment(farm.created_at).format('YYYY/MM/D')}}</td>
               <td>{{ farm.deed_number }}</td>
               <td>{{ farm.location.address }}</td>
-              <td>{{ farm.crop.name }}</td>
+              <td>{{ farm.crop }}</td>
               <td><router-link :to="{ name: 'Harvests', params: { farmerId: farmerId, farmId: farm.id} }">view</router-link></td>
-              <td> <a class="text-danger action-clk" @click="$bvModal.show(`modal-delete-farm-${farm.id}`)">delete</a></td>
+              <td> <a class="text-warning action-clk" @click="$bvModal.show(`modal-edit-farm-${farm.id}`)">edit</a> | <a class="text-danger action-clk" @click="$bvModal.show(`modal-delete-farm-${farm.id}`)">delete</a></td>
             </tr>
           </tbody>
         </table>
@@ -58,6 +58,63 @@
                 <Loader v-if="deletingFarm"/>
                 <b-button  variant="danger" :disabled="deletingFarm" @click="delFarm(farm.id)">
                   Delete
+                </b-button>
+              </template>
+            </b-modal>
+
+            <b-modal :id="'modal-edit-farm-'+ farm.id" centered title="Edit Farm" ok-only ok-variant="primary" ok-title="Update">
+              <div class="form-group">
+                <label for="name">Size</label>
+                <input type="number" min="0" class="form-control" id="size" placeholder="size" v-model="editForm[(farm.id).toString()].size">
+                <div class="text-danger mb-2" v-if="updateErrors[(farm.id).toString()].size">
+                    {{updateErrors[(farm.id).toString()].size}}
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="name">Deed Number</label>
+                <input type="number" min="0" class="form-control" id="deed-number" placeholder="deed number" v-model="editForm[(farm.id).toString()].deed_number">
+                <div class="text-danger mb-2" v-if="updateErrors[(farm.id).toString()].deed_number">
+                    {{updateErrors[(farm.id).toString()].deed_number}}
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="name">Crop</label>
+                <input type="text" class="form-control" id="crop" placeholder="crop" v-model="editForm[(farm.id).toString()].crop">
+                <div class="text-danger mb-2" v-if="updateErrors[(farm.id).toString()].crop">
+                    {{updateErrors[(farm.id).toString()].crop}}
+                </div>
+              </div>
+              <GmapMap
+                :center="center"
+                :zoom="5"
+                map-style-id="roadmap"
+                :options="mapOptions"
+                style="width: 46.5vmin; height: 40vmin"
+                class="map"
+                ref="mapRef"
+                @click="handleMapClick($event, farm.id)"
+              >
+                <GmapMarker
+                  :position="editForm[(farm.id).toString()].marker.position"
+                  :clickable="true"
+                  :draggable="true"
+                  @drag="handleMarkerDrag($event, farm.id)"
+                  @click="panToMarker($event, farm.id)"
+                />
+              </GmapMap>
+              <button class="btn btn-sm btn-secondary mt-2" @click="geolocate(farm.id)">Detect Location</button>
+
+              <div>Selected Latitude: {{ editForm[(farm.id).toString()].marker.position.lat }}</div>
+              <div>Selected Longitude: {{ editForm[(farm.id).toString()].marker.position.lng }}</div>
+              <span class="">Selected address: {{editForm[(farm.id).toString()].location.address}}</span>
+              <div class="text-danger mb-2 mt-2" v-if="updateErrors[(farm.id).toString()].general">
+                  {{updateErrors[(farm.id).toString()].general}}
+              </div>
+              <input type="hidden" id="custId" name="custId" v-model="watcher_field">
+              <template #modal-footer="{}">
+                <Loader v-if="editingFarm"/>
+                <b-button  variant="primary" :disabled="editingFarm" @click="editFarm(farm.id)">
+                  Update
                 </b-button>
               </template>
             </b-modal>
@@ -139,10 +196,12 @@ export default {
   data() {
     return {
       moment: moment,
+      watcher_field : 0,
       loading: false,
       loadingFarmer: false,
       deletingFarm: false,
       savingFarm: false,
+      editingFarm: false,
       modalShow: false,
       marker: { position: { lat: 0, lng: 20 } },
       center: { lat: 0, lng: 20 },
@@ -166,11 +225,16 @@ export default {
           location_metadata: {}
         }
       },
+      editForm: {
+
+      },
       createErrors: {
         size: null,
         deed_number: null,
         crop: null,
         general: null
+      },
+      updateErrors: {
       }
     }
   },
@@ -182,6 +246,7 @@ export default {
       fetchFarms: 'farms/fetchFarms',
       fetchFarmer: 'farms/fetchFarmer',
       deleteFarm: 'farms/deleteFarm',
+      updateFarm: 'farms/updateFarm',
       addFarm: 'farms/addFarm'
     }),
     submitFarm(){
@@ -208,10 +273,12 @@ export default {
         let found = this.farms.some(ele => ele.deed_number == this.form.deed_number);
 
         if (found){
+          errors = true
           this.createErrors.deed_number = "Farm with that deed number already exists"
         }
       }
       if (this.farmer.location.administrative_area != this.form.location.administrative_area){
+        errors = true
         this.createErrors.general= 'Farm must be within the farmer location'
       }
 
@@ -226,6 +293,60 @@ export default {
           console.log('>>>>', error)
           this.createErrors.general = 'something went wrong'
           this.savingFarm = false
+        })
+      }
+    },
+
+    editFarm(id){
+      let errors = false
+
+      this.updateErrors[(id).toString()] = {
+
+        size: null,
+        deed_number: null,
+        crop: null,
+        general: null
+      }
+      
+      if (!this.editForm[(id).toString()].size){
+        errors = true
+        this.updateErrors[(id).toString()].size = "size cannot be blank"
+      }
+      if (!this.editForm[(id).toString()].deed_number){
+        errors = true
+        this.updateErrors[(id).toString()].deed_number = "Deed number cannot be blank"
+      }
+      if (!this.editForm[(id).toString()].crop){
+        errors = true
+        this.updateErrors[(id).toString()].crop = "Crop cannot be blank"
+      }
+      if (this.farms){
+        let index = this.farms.findIndex(ele => ele.deed_number == this.editForm[(id).toString()].deed_number && ele.deed_number != this.editForm[(id).toString()].deed);
+        console.log(index)
+
+        if (index !== -1){
+          errors = true
+          this.updateErrors[(id).toString()].deed_number = "Farm with that deed number already exists"
+        }
+      }
+      if (this.farmer.location.administrative_area != this.editForm[(id).toString()].location.administrative_area){
+        errors = true
+        this.updateErrors[(id).toString()].general= 'Farm must be within the farmer location'
+      }
+
+      this.watcher_field ++
+      if (!errors){
+        this.editingFarm = true
+        this.updateFarm({farmId: id, farmerId: this.farmerId, data: this.editForm[(id).toString()]})
+        .then(() => {
+          this.$bvModal.hide('modal-edit-farm-'+ id)
+          this.editingFarm = false
+        })
+        .catch(error => {
+          console.log('>>>>', error)
+          this.watcher_field ++
+          this.updateErrors[(id).toString()].general = 'something went wrong'
+          this.editingFarm = false
         })
       }
     },
@@ -246,63 +367,119 @@ export default {
       this.form.crop = null
       this.modalShow = false
     },
-    geolocate() {
+    geolocate(id = null) {
       navigator.geolocation.getCurrentPosition((position) => {
-        this.marker.position = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        };
-        this.geocode(this.marker.position)
-        this.panToMarker();
+        if (id){
+          this.editForm[(id).toString()].marker.position = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+        } else {
+          this.editForm[(id).toString()].marker.position = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+        }
+        this.geocode(this.marker.position, id)
+        this.panToMarker(id);
       });
     },
 
     //sets the position of marker when dragged
-    handleMarkerDrag(e) {
-      this.marker.position = { lat: e.latLng.lat(), lng: e.latLng.lng() };
-      this.geocode(this.marker.position)
+    handleMarkerDrag(e, id=null) {
+      if (id){
+        this.editForm[(id).toString()].marker.position = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+        this.geocode(this.editForm[(id).toString()].marker.position)
+      } else {
+        this.marker.position = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+        this.geocode(this.marker.position)
+      }
     },
 
     //Moves the map view port to marker
-    panToMarker() {
-      this.$refs.mapRef.panTo(this.marker.position);
-      this.$refs.mapRef.setZoom(18);
+    panToMarker(id = null) {
+      if (id){
+        this.$refs.mapRef.panTo(this.editForm[(id).toString()].marker.position);
+        this.$refs.mapRef.setZoom(18);
+      } else {
+        this.$refs.mapRef.panTo(this.marker.position);
+        this.$refs.mapRef.setZoom(18);
+      }
     },
 
     //Moves the marker to click position on the map
-    handleMapClick(e) {
-      this.marker.position = { lat: e.latLng.lat(), lng: e.latLng.lng() };
-      this.geocode(this.marker.position)
+    handleMapClick(e, id = null) {
+      if (id){
+        this.editForm[(id).toString()].marker.position = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+        this.geocode(this.editForm[(id).toString()].marker.position, id)
+      } else {
+        this.marker.position = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+        this.geocode(this.marker.position, id)
+      }
       console.log(e);
     },
-    geocode(latLngObj){
+    geocode(latLngObj, id){
       this.$geocoder.send(latLngObj, response => { 
         console.log(response) 
-        this.updateFormData(latLngObj, response.results)
+        if (id){
+          this.updateFormData(latLngObj, response.results, id)
+        } else {
+
+          this.updateFormData(latLngObj, response.results)
+        }
       });
     },
-    updateFormData(coordinates, geocode_response){
-      this.form.location.point.coordinates[0] = coordinates.lng
-      this.form.location.point.coordinates[1] = coordinates.lat
-      this.form.location.location_metadata.google_maps_response = geocode_response
+    updateFormData(coordinates, geocode_response, id=null){
+      if (id){
+        this.editForm[(id).toString()].location.point.coordinates[0] = coordinates.lng
+        this.editForm[(id).toString()].location.point.coordinates[1] = coordinates.lat
+        this.editForm[(id).toString()].location.location_metadata.google_maps_response = geocode_response
 
-      country_loop:
-      for (const geo of geocode_response){
-        for (const address_component of geo.address_components){
-          if (address_component.types.includes("country")){
-            this.form.location.country = address_component.long_name
-            break country_loop;
+        country_loop:
+        for (const geo of geocode_response){
+          for (const address_component of geo.address_components){
+            if (address_component.types.includes("country")){
+              this.editForm[(id).toString()].location.country = address_component.long_name
+              break country_loop;
+            }
           }
         }
-      }
 
-      adm_loop:
-      for (const geo of geocode_response){
-        for (const address_component of geo.address_components){
-          if (address_component.types.includes("administrative_area_level_1")){
-            this.form.location.administrative_area = address_component.long_name
-            this.form.location.address = geo.formatted_address
-            break adm_loop;
+        adm_loop:
+        for (const geo of geocode_response){
+          for (const address_component of geo.address_components){
+            if (address_component.types.includes("administrative_area_level_1")){
+              this.editForm[(id).toString()].location.administrative_area = address_component.long_name
+              this.editForm[(id).toString()].location.address = geo.formatted_address
+              break adm_loop;
+            }
+          }
+        }
+
+      } else {
+
+        this.form.location.point.coordinates[0] = coordinates.lng
+        this.form.location.point.coordinates[1] = coordinates.lat
+        this.form.location.location_metadata.google_maps_response = geocode_response
+
+        country_loop:
+        for (const geo of geocode_response){
+          for (const address_component of geo.address_components){
+            if (address_component.types.includes("country")){
+              this.form.location.country = address_component.long_name
+              break country_loop;
+            }
+          }
+        }
+
+        adm_loop:
+        for (const geo of geocode_response){
+          for (const address_component of geo.address_components){
+            if (address_component.types.includes("administrative_area_level_1")){
+              this.form.location.administrative_area = address_component.long_name
+              this.form.location.address = geo.formatted_address
+              break adm_loop;
+            }
           }
         }
       }
@@ -319,6 +496,19 @@ export default {
     this.loading = true
     this.fetchFarms(this.farmerId)
       .then(() => {
+        for (let farm of this.farms) {
+            farm.marker = { position: { lat: farm.location.point.coordinates[0], lng: farm.location.point.coordinates[1] } }
+            farm.crop= farm.crop.name
+            farm.deed= farm.deed_number
+            farm.location.location_metadata = {}
+            this.editForm[(farm.id).toString()] = farm
+            this.updateErrors[(farm.id).toString()] = {
+              size: null,
+              deed_number: null,
+              crop: null,
+              general: null
+            }
+        }
         this.loading = false
       })
       .catch(() => {

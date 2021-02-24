@@ -20,6 +20,11 @@ const actions = {
 
         commit('newFarmer', response.data.farmer)
     },
+    async updateFarmer ({commit}, payload){
+        const response = await axios.patch(`/farmers/${payload.farmerId}/`, payload.data)
+
+        commit('editedFarmer', response.data)
+    },
     async deleteFarmer ({commit}, farmerId){
         const response = await axios.delete(`/farmers/${farmerId}/`)
         console.log(response)
@@ -42,6 +47,12 @@ const mutations = {
         } else {
             state.farmers = []
             state.farmers.push(farmer)
+        }
+    },
+    editedFarmer (state, uFarmer) {
+        const index = state.farmers.findIndex(farmer => farmer.id === uFarmer.id)
+        if (index !== -1){
+            state.farmers.splice(index, 1,uFarmer)
         }
     },
     removeFarmer (state, id) {

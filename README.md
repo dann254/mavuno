@@ -10,12 +10,10 @@ Mavuno is a product that allows collection of data about farmers, farms and thei
 - [Mockups](https://www.figma.com/file/SWzhN3IY95nWmhwebeOwyg/Untitled?node-id=0%3A1)
 
 ### TODO
-- allow editing of records
 - catch all errors from API
 - show more stats
 - debug: chrome not autolocating user.
 - add user management page.
-- design improvements
 - improve responsiveness
 - write tests
 

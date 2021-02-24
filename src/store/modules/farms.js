@@ -28,6 +28,11 @@ const actions = {
 
         commit('newFarm', response.data.farm)
     },
+    async updateFarm ({commit}, payload){
+        const response = await axios.patch(`/farmers/${payload.farmerId}/farms/${payload.farmId}/`, payload.data)
+
+        commit('editedFarm', response.data)
+    },
     async deleteFarm ({commit}, data){
         const response = await axios.delete(`/farmers/${data.farmerId}/farms/${data.farmId}/`)
         console.log(response)
@@ -52,6 +57,12 @@ const mutations = {
         } else {
             state.farms = []
             state.farms.push(farm)
+        }
+    },
+    editedFarm (state, uFarm) {
+        const index = state.farms.findIndex(farm => farm.id === uFarm.id)
+        if (index !== -1){
+            state.farms.splice(index, 1,uFarm)
         }
     },
     removeFarm (state, id) {

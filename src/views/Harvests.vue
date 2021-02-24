@@ -1,15 +1,16 @@
 <template>
   <div class="harvest container">
     <h3 class="text-primary"><span class="text-muted"> <router-link class="text-muted" :to="{ name: 'Farmers'}">Farmers > </router-link></span><span  class="text-muted"><router-link class="text-muted" :to="{ name: 'Farms', params: { farmerId: farmerId} }"> Farms > </router-link></span><span>  Harvests </span> </h3>
-    <div class="loader-container-page" v-if="loading">
-      <Loader/>
-    </div>
     <Loader v-if="loadingFarm && !loading"/>
 
     <div v-if="farm && !loadingFarm">
       <h4>{{farm.farmer.name}}</h4>
 
-      <h6>id number: {{farm.farmer.id_number}} <br> location: {{farm.farmer.location.address}}  <br> Farm Deed: {{farm.deed_number}}</h6>
+      <h6>id number: {{farm.farmer.id_number}} <br> Location: {{farm.farmer.location.address}}  <br> Farm Deed: {{farm.deed_number}}</h6>
+    </div>
+
+    <div class="loader-container-page" v-if="loading">
+      <Loader/>
     </div>
 
     <div class="card table-card" v-if="!loading">
@@ -35,7 +36,7 @@
               <td>{{ harvest.dry_weight }} kg</td>
               <td>{{ harvest.farm.crop.name }}</td>
               <td> <a href="#" @click="$bvModal.show(`modal-${harvest.id}`)">view</a></td>
-              <td> <a class="text-danger action-clk" @click="$bvModal.show(`modal-delete-harvest-${harvest.id}`)">delete</a></td>
+              <td> <a class="text-warning action-clk" @click="$bvModal.show(`modal-edit-harvest-${harvest.id}`)">edit</a> | <a class="text-danger action-clk" @click="$bvModal.show(`modal-delete-harvest-${harvest.id}`)">delete</a></td>
             </tr>
           </tbody>
         </table>
@@ -64,18 +65,47 @@
               </b-button>
             </template>
           </b-modal>
+
+          <b-modal :id="'modal-edit-harvest-' + harvest.id" centered title="Edit Harvest" ok-only ok-variant="primary" ok-title="Update">
+            <div class="form-group">
+              <label for="name">Wet Weight (kg)</label>
+              <input type="text" class="form-control" id="wet-weight" placeholder=" Wet weight" v-model="editForm[(harvest.id).toString()].wet_weight">
+              <div class="text-danger mb-2" v-if="updateErrors[(harvest.id).toString()].wet_weight">
+                  {{updateErrors[(harvest.id).toString()].wet_weight}}
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="name">Dry Weight (kg)</label>
+              <input type="text" class="form-control" id="dry-weight" placeholder="Dry weight" v-model="editForm[(harvest.id).toString()].dry_weight">
+              <div class="text-danger mb-2" v-if="updateErrors[(harvest.id).toString()].dry_weight">
+                  {{updateErrors[(harvest.id).toString()].dry_weight}}
+              </div>
+            </div>
+            <div class="text-danger mb-2 mt-2" v-if="updateErrors[(harvest.id).toString()].general">
+                {{createErrors.general}}
+            </div>
+
+            <input type="hidden" id="custId" name="custId" v-model="watcher_field">
+
+            <template #modal-footer="{}">
+              <Loader v-if="updatingHarvest"/>
+              <b-button variant="primary" :disabled="updatingHarvest" @click="editHarvest(harvest.id)">
+                Update
+              </b-button>
+            </template>
+          </b-modal>
         </div>
         <div >
           <b-modal id="modal-add-harvest" v-model="modalShow" centered title="Add Harvest" ok-only ok-variant="primary" ok-title="Add">
             <div class="form-group">
-              <label for="name">Wet Weight</label>
+              <label for="name">Wet Weight (kg)</label>
               <input type="text" class="form-control" id="wet-weight" placeholder=" Wet weight" v-model="form.wet_weight">
               <div class="text-danger mb-2" v-if="createErrors.wet_weight">
                   {{createErrors.wet_weight}}
               </div>
             </div>
             <div class="form-group">
-              <label for="name">Dry Weight</label>
+              <label for="name">Dry Weight (kg)</label>
               <input type="text" class="form-control" id="dry-weight" placeholder="Dry weight" v-model="form.dry_weight">
               <div class="text-danger mb-2" v-if="createErrors.dry_weight">
                   {{createErrors.dry_weight}}
@@ -116,11 +146,13 @@ export default {
   data() {
     return {
       moment: moment,
+      watcher_field : 0,
       modalShow: false,
       loading: false,
       loadingFarm: false,
       savingHarvest: false,
       deletingHarvest: false,
+      updatingHarvest: false,
       files: [],
       form: {
         farmerId: this.farmerId,
@@ -132,10 +164,14 @@ export default {
         photo_3: null
 
       },
+      editForm: {
+      },
       createErrors: {
         dry_weight: null,
         wet_weight: null,
         general: null
+      },
+      updateErrors: {
       }
     }
   },
@@ -147,6 +183,7 @@ export default {
       fetchHarvests: 'harvests/fetchHarvests',
       fetchFarm: 'harvests/fetchFarm',
       addHarvest: 'harvests/addHarvest',
+      updateHarvest: 'harvests/updateHarvest',
       deleteHarvest: 'harvests/deleteHarvest',
     }),
     submitHarvest () {
@@ -206,6 +243,53 @@ export default {
         })
       }
     },
+
+    editHarvest (id) {
+      let errors = false
+
+      this.updateErrors[(id).toString()] = {
+        dry_weight: null,
+        wet_weight: null,
+        general: null
+      }
+
+      if (!this.editForm[(id).toString()].dry_weight){
+        errors = true
+        this.updateErrors[(id).toString()].dry_weight = "Dry weight cannot be blank"
+      }
+      if (!this.editForm[(id).toString()].wet_weight){
+        errors = true
+        this.updateErrors[(id).toString()].wet_weight = "Wet weight cannot be blank"
+      }
+      if (this.editForm[(id).toString()].wet_weight && this.editForm[(id)].dry_weight){
+         if (this.editForm[(id).toString()].wet_weight <= this.editForm[(id).toString()].dry_weight){
+          errors = true
+          this.updateErrors[(id).toString()].dry_weight = "Dry weight cannot be greater than wet weight"
+        }
+      }
+
+      // allows proper update of watchers on DOM
+      this.watcher_field ++
+
+      if (!errors){
+        this.updatingHarvest = true
+        let data = {
+            dry_weight: this.editForm[(id).toString()].dry_weight,
+            wet_weight: this.editForm[(id).toString()].wet_weight
+          }
+
+        this.updateHarvest({farmId: this.farmId, farmerId: this.farmerId, harvestId: id, data: data}).then(() => {
+          this.$bvModal.hide('modal-edit-harvest-'+ id)
+          this.updatingHarvest = false
+        })
+        .catch(error => {
+          console.log('>>>>', error)
+          this.updatingHarvest = false
+          this.watcher_field ++
+          this.updateErrors[(id).toString()].general = 'Something went wrong'
+        })
+      }
+    },
     delHarvest(id) {
       this.deletingHarvest = true
         this.deleteHarvest({farmerId: this.farmerId, farmId: this.farmId, harvestId: id})
@@ -252,6 +336,15 @@ export default {
     this.loadingFarm = true
     this.fetchHarvests({farmerId: this.farmerId, farmId: this.farmId})
       .then(() => {
+        for (let harvest of this.harvests) {
+            this.editForm[(harvest.id).toString()] = harvest
+            this.updateErrors[(harvest.id).toString()] = {
+              dry_weight: null,
+              wet_weight: null,
+              general: null
+            }
+        }
+        console.log(this.editForm)
         this.loading = false
       })
       .catch(() => {

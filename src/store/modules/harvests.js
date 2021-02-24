@@ -31,6 +31,12 @@ const actions = {
 
         commit('newHarvest', response.data.harvest)
     },
+
+    async updateHarvest ({commit}, payload){
+        const response = await axios.patch(`/farmers/${payload.farmerId}/farms/${payload.farmId}/harvests/${payload.harvestId}/`, payload.data)
+
+        commit('editedHarvest', response.data)
+    },
     async deleteHarvest ({commit}, data){
         const response = await axios.delete(`/farmers/${data.farmerId}/farms/${data.farmId}/harvests/${data.harvestId}/`)
         console.log(response)
@@ -58,6 +64,12 @@ const mutations = {
             state.harvests.push(harvest)
         }
 
+    },
+    editedHarvest (state, uHarvest) {
+        const index = state.harvests.findIndex(harvest => harvest.id === uHarvest.id)
+        if (index !== -1){
+            state.harvests.splice(index, 1,uHarvest)
+        }
     },
     removeHarvest(state, id) {
         state.harvests = state.harvests.filter(harvest => harvest.id !== id)
