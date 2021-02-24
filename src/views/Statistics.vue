@@ -30,7 +30,7 @@
                     <th scope="col">Crop</th>
                     <th scope="col">Harvests</th>
                     <th scope="col">Avg. Wet weight</th>
-                    <th scope="col">Avg. Wet weight</th>
+                    <th scope="col">Avg. Dry weight</th>
                   </tr>
                 </thead>
                 <tbody>

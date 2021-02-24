@@ -64,7 +64,7 @@
 
             <b-modal :id="'modal-edit-farm-'+ farm.id" centered title="Edit Farm" ok-only ok-variant="primary" ok-title="Update">
               <div class="form-group">
-                <label for="name">Size</label>
+                <label for="name">Size (acres)</label>
                 <input type="number" min="0" class="form-control" id="size" placeholder="size" v-model="editForm[(farm.id).toString()].size">
                 <div class="text-danger mb-2" v-if="updateErrors[(farm.id).toString()].size">
                     {{updateErrors[(farm.id).toString()].size}}
@@ -122,7 +122,7 @@
 
           <b-modal id="modal-add-farm" v-model="modalShow" centered title="Add Farm" ok-only ok-variant="primary" ok-title="Add">
             <div class="form-group">
-              <label for="name">Size</label>
+              <label for="name">Size (acres)</label>
               <input type="number" min="0" class="form-control" id="size" placeholder="size" v-model="form.size">
               <div class="text-danger mb-2" v-if="createErrors.size">
                   {{createErrors.size}}
@@ -527,6 +527,23 @@ export default {
 
     this.geocode(this.marker.position)
     this.geolocate();
+  },
+  beforeUpdate() {
+    if (this.farms) {
+      for (let farm of this.farms) {
+        farm.marker = { position: { lat: farm.location.point.coordinates[0], lng: farm.location.point.coordinates[1] } }
+        farm.crop= farm.crop.name ? farm.crop.name : farm.crop
+        farm.deed= farm.deed_number
+        farm.location.location_metadata = {}
+        this.editForm[(farm.id).toString()] = farm
+        this.updateErrors[(farm.id).toString()] = {
+          size: null,
+          deed_number: null,
+          crop: null,
+          general: null
+        }
+    }
+    }
   }
 }
 </script>

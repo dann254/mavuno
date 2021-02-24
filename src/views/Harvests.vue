@@ -357,6 +357,18 @@ export default {
       .catch(() => {
         this.loadingFarm = false
       })
+  },
+  beforeUpdate() {
+    if (this.harvests) {
+      for (let harvest of this.harvests) {
+          this.editForm[(harvest.id).toString()] = harvest
+          this.updateErrors[(harvest.id).toString()] = {
+            dry_weight: null,
+            wet_weight: null,
+            general: null
+          }
+      }
+    }
   }
 }
 </script>

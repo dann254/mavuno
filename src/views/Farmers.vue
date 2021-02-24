@@ -254,6 +254,7 @@ export default {
         .then(() => {
           this.savingFarmer = false
           this.hideModal()
+          console.log(this.farmers)
         })
         .catch(error => {
           this.savingFarmer = false
@@ -435,7 +436,7 @@ export default {
           }
         }
       }
-    }
+    },
   },
   computed: {
     ...mapGetters({
@@ -466,10 +467,25 @@ export default {
     this.geocode(this.marker.position)
     this.geolocate();
   },
-   mounted() {
+  mounted() {
     // this.geocode(this.marker.position)
     // this.geolocate();
   },
+  beforeUpdate() {
+    if (this.farmers) {
+      for (let farmer of this.farmers) {
+          farmer.marker = { position: { lat: farmer.location.point.coordinates[0], lng: farmer.location.point.coordinates[1] } }
+          farmer.id_number_temp= farmer.id_number
+          farmer.location.location_metadata = {}
+          this.editForm[(farmer.id).toString()] = farmer
+          this.updateErrors[(farmer.id).toString()] = {
+            name : null,
+            id_number: null,
+            general: null
+          }
+      }
+    }
+  }
 }
 </script>
 
