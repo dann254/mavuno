@@ -11,8 +11,7 @@ Mavuno is a product that allows collection of data about farmers, farms and thei
 
 ### TODO
 - catch all errors from API
-- show more stats
-- debug: chrome not autolocating user.
+- debug: chrome not auto locating user.
 - add user management page.
 - improve responsiveness
 - write tests

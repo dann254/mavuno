@@ -21,6 +21,48 @@
               <h5 class="">{{stats.harvest_stats.harvested_crops}}</h5>
             </div>
           </div>
+          <div class="card col-1uto m-1">
+            <div class="card-body">
+              <h5 class="text-muted">Harvest yields</h5>
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th scope="col">Crop</th>
+                    <th scope="col">Harvests</th>
+                    <th scope="col">Avg. Wet weight</th>
+                    <th scope="col">Avg. Wet weight</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="i in stats.harvest_stats.crop_harvests" :key="i.name">
+                    <td scope="row">{{ i.name }}</td>
+                    <td>{{ i.harvest_count }}</td>
+                    <td>{{ i.avg_wet_yield }}</td>
+                    <td>{{ i.avg_dry_yield }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card col-1uto m-1">
+            <div class="card-body">
+              <h5 class="text-muted">Yearly Harvests</h5>
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th scope="col">Year</th>
+                    <th scope="col">Harvests</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="i in stats.harvest_stats.year_harvests" :key="i.year">
+                    <td scope="row">{{ i.year }}</td>
+                    <td>{{ i.harvest_count }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -95,4 +137,7 @@ export default {
   padding-left: 80px;
   padding-right: 80px;
 }
+.table > thead th {
+          border-top: none;
+      }
 </style>
